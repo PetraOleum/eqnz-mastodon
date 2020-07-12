@@ -125,6 +125,8 @@ def main():
             printEQ(eqs[eq], eq, None, args, mastodon)
 
     while True:
+        if args.debug:
+            print("Looping...")
         time.sleep(args.wait)
         neweq = latestQuakes(args.mmi)
         for qid in neweq:
