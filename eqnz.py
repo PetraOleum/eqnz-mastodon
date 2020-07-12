@@ -1,10 +1,11 @@
-import requests
 import time
+import signal
+import requests
 import dateutil.parser
 import datetime
-from pytz import timezone
-import signal
+import argparse
 from sys import stderr
+from pytz import timezone
 
 roman = {1: "I (Unnoticeable)",
          2: "II (Unnoticeable)",
@@ -18,6 +19,18 @@ roman = {1: "I (Unnoticeable)",
          10: "X (Extreme)",
          11: "XI (Extreme)",
          12: "XII (Extreme)"}
+
+def parseArgs():
+    parser = argparse.ArgumentParser(description="EQNZ mastodon bot")
+    parser.add_argument("-m", "--mmi", type=int, default=-1, dest="mmi",
+                        help="minimum Modified Mercalli Intensity (MMI).",
+                        choices=range(-1,8), metavar = "[-1 to 8]")
+    parser.add_argument("-s", "--secret", type=str, metavar = "[file]",
+                        default="eqnz_usercred.secret",
+                        help="mastodon secret file", dest="secret")
+    parser.add_argument("-d", "--debug", dest="debug", action="store_true",
+                        help="do not post to mastodon")
+    return parser.parse_args()
 
 def latestQuakes(mmi):
     try:
@@ -44,13 +57,13 @@ def latestQuakes(mmi):
         print(e, file=stderr)
         return {}
 
-def printEQ(eq, eqid, threadid):
+def printEQ(eq, eqid, threadid, args):
     global roman
     if threadid is not None:
         ps1 = "Update on earthquake "
     else:
         ps1 = "Earthquake "
-    ps2 = ("at {time:%-I:%M %p}, {locality}. Magnitude {magnitude:.1f}, at "
+    ps2 = ("at {time:%-I:%M %p}, {locality}.\nMagnitude {magnitude:.1f}, at "
           "a depth of {depth:.1f} kilometres.").format(**eq)
     if eq["mmi"] in roman:
         ps3 = "\nModified Mercalli Intensity: {}".format(roman[eq["mmi"]])
@@ -66,11 +79,17 @@ def printEQ(eq, eqid, threadid):
         ps5 = ""
     post = "{}{}{}{}{}".format(ps1, ps2, ps3, ps4, ps5)
     print(post)
+    if args.debug:
+        print("noMasto")
+    else:
+        print("Masto")
+
     # Placeholder id
     return "123456789"
 
 def main():
-    eqs = latestQuakes(-1)
+    args = parseArgs()
+    eqs = latestQuakes(args.mmi)
 
     if len(eqs) == 0:
         raise ValueError("Failed to get first batch of earthquakes")
@@ -78,7 +97,7 @@ def main():
     while True:
         print("looping...")
         time.sleep(60)
-        neweq = latestQuakes(-1)
+        neweq = latestQuakes(args.mmi)
         for qid in neweq:
             if neweq[qid]["quality"] == "deleted":
                 continue
@@ -90,11 +109,11 @@ def main():
                     # Modified entry
                     tid = (eqs[qid]["threadid"] if
                         "threadid" in eqs[qid] else None)
-                    neweq[qid]["threadid"] = printEQ(neweq[qid], qid, tid)
+                    neweq[qid]["threadid"] = printEQ(neweq[qid], qid, tid, args)
                     eqs[qid] = neweq[qid]
             else:
                 # New entry
-                neweq[qid]["threadid"] = printEQ(neweq[qid], qid, None)
+                neweq[qid]["threadid"] = printEQ(neweq[qid], qid, None, args)
                 eqs[qid] = neweq[qid]
 
 if __name__ == "__main__":
