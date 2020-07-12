@@ -69,32 +69,33 @@ def printEQ(eq, eqid, threadid):
     # Placeholder id
     return "123456789"
 
+def main():
+    eqs = latestQuakes(-1)
 
-eqs = latestQuakes(-1)
+    if len(eqs) == 0:
+        raise ValueError("Failed to get first batch of earthquakes")
 
-if len(eqs) == 0:
-    raise ValueError("Failed to get first batch of earthquakes")
-
-while True:
-    print("looping...")
-    time.sleep(60)
-    neweq = latestQuakes(-1)
-    for qid in neweq:
-        if neweq[qid]["quality"] == "deleted":
-            continue
-        if qid in eqs:
-            if (eqs[qid]["magnitude"] != neweq[qid]["magnitude"] or
-                    eqs[qid]["time"] != neweq[qid]["time"] or
-                    eqs[qid]["depth"] != neweq[qid]["depth"] or
-                    eqs[qid]["locality"] != neweq[qid]["locality"]):
-                # Modified entry
-                tid = (eqs[qid]["threadid"] if
-                    "threadid" in eqs[qid] else None)
-                neweq[qid]["threadid"] = printEQ(neweq[qid], qid, tid)
+    while True:
+        print("looping...")
+        time.sleep(60)
+        neweq = latestQuakes(-1)
+        for qid in neweq:
+            if neweq[qid]["quality"] == "deleted":
+                continue
+            if qid in eqs:
+                if (eqs[qid]["magnitude"] != neweq[qid]["magnitude"] or
+                        eqs[qid]["time"] != neweq[qid]["time"] or
+                        eqs[qid]["depth"] != neweq[qid]["depth"] or
+                        eqs[qid]["locality"] != neweq[qid]["locality"]):
+                    # Modified entry
+                    tid = (eqs[qid]["threadid"] if
+                        "threadid" in eqs[qid] else None)
+                    neweq[qid]["threadid"] = printEQ(neweq[qid], qid, tid)
+                    eqs[qid] = neweq[qid]
+            else:
+                # New entry
+                neweq[qid]["threadid"] = printEQ(neweq[qid], qid, None)
                 eqs[qid] = neweq[qid]
-        else:
-            # New entry
-            neweq[qid]["threadid"] = printEQ(neweq[qid], qid, None)
-            eqs[qid] = neweq[qid]
 
-print("Terminated")
+if __name__ == "__main__":
+    main()
