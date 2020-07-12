@@ -34,7 +34,13 @@ def parseArgs():
                         help=("mastodon secret file, default: "
                               "eqnz_usercred.secret"), dest="secret")
     parser.add_argument("-d", "--debug", dest="debug", action="store_true",
-                        help="do not post to mastodon")
+                        help="do not post to mastodon, do print initial")
+    parser.add_argument("--no-quality", dest="qual", action="store_false",
+                        help="don't show data quality")
+    parser.add_argument("--no-mmi", dest="show_mmi", action="store_false",
+                        help="don't show Mercalli scale")
+    parser.add_argument("--no-updates", dest="updates", action="store_false",
+                        help="don't give updates")
     return parser.parse_args()
 
 
@@ -75,11 +81,11 @@ def printEQ(eq, eqid, threadid, args, masto):
         ps1 = "Earthquake "
     ps2 = ("at {time:%-I:%M %p}, {locality}.\nMagnitude {magnitude:.1f}, at "
            "a depth of {depth:.1f} kilometres.").format(**eq)
-    if eq["mmi"] in roman:
+    if ((eq["mmi"] in roman) and args.show_mmi):
         ps3 = "\nModified Mercalli Intensity: {}".format(roman[eq["mmi"]])
     else:
         ps3 = ""
-    if (eq["quality"] != "best" or threadid is not None):
+    if ((eq["quality"] != "best" or threadid is not None) and args.qual):
         ps4 = "\nData quality: {}". format(eq["quality"])
     else:
         ps4 = ""
@@ -112,6 +118,12 @@ def main():
     if len(eqs) == 0:
         raise ValueError("Failed to get first batch of earthquakes")
 
+    print("Retrieved {} initial earthquakes".format(len(eqs)))
+
+    if args.debug:
+        for eq in eqs:
+            printEQ(eqs[eq], eq, None, args, mastodon)
+
     while True:
         time.sleep(args.wait)
         neweq = latestQuakes(args.mmi)
@@ -119,10 +131,11 @@ def main():
             if neweq[qid]["quality"] == "deleted":
                 continue
             if qid in eqs:
-                if (eqs[qid]["magnitude"] != neweq[qid]["magnitude"] or
+                if ((eqs[qid]["magnitude"] != neweq[qid]["magnitude"] or
                         eqs[qid]["time"] != neweq[qid]["time"] or
                         eqs[qid]["depth"] != neweq[qid]["depth"] or
-                        eqs[qid]["locality"] != neweq[qid]["locality"]):
+                        eqs[qid]["locality"] != neweq[qid]["locality"]) and
+                        args.updates):
                     # Modified entry
                     tid = (eqs[qid]["threadid"] if
                            "threadid" in eqs[qid] else None)
