@@ -76,8 +76,8 @@ def main():
         odj = json.loads(od)
     except Exception as e:
         print(e, file=stderr)
-		print("File {} missing or corrupt.".format(args.jfile))
-		print("Replacing with new download and quitting.")
+        print("File {} missing or corrupt.".format(args.jfile))
+        print("Replacing with new download and quitting.")
         saveVolcData(nd, args.jfile)
         quit()
     for vi in range(0, len(odj["features"])):
