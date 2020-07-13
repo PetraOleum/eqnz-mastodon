@@ -25,3 +25,26 @@ python eqnz.py --secret eqnz_usercred.secret --mmi 3
 This polls the API once every 30 seconds, for earthquakes with a Modified Mercalli Intensity of III or higher (weak and up), and posts to the mastodon account associated with the secret file.
 
 This could probably be put into a systemd service file, but for now I leave this as an example to the user.
+
+## Volcano bot
+
+`volcano.py` checks the alert level of New Zealand's volcanoes and, if they have changed, posts to mastodon. To run with a `pyenv` virtualenvironment and `cron`, I suggest a wrapper script along the lines of:
+
+```
+*/15 * * * * /home/petra/runvolc >> /home/petra/volclog.txt 2>&1
+```
+
+**runvolc**:
+
+```
+#! /bin/bash
+
+export PATH="/home/petra/.pyenv/bin:$PATH"
+export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+
+cd /home/petra/eqnz-mastodon
+pyenv activate eqnzvenv
+python volcano.py
+```
