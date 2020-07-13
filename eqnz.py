@@ -25,11 +25,11 @@ def parseArgs():
     parser.add_argument("-m", "--mmi", type=int, default=-1, dest="mmi",
                         help=("minimum Modified Mercalli Intensity (MMI), "
                               "default: -1"),
-                        choices=range(-1, 8), metavar="[-1 to 8]")
+                        choices=range(-1, 8), metavar="-1..8")
     parser.add_argument("-t", "--time", type=int, default=30, dest="wait",
-                        metavar="[INT]",
+                        metavar="INT",
                         help="seconds between API polls, default: 30")
-    parser.add_argument("-s", "--secret", type=str, metavar="[file]",
+    parser.add_argument("-s", "--secret", type=str, metavar="FILE",
                         default="eqnz_usercred.secret",
                         help=("mastodon secret file, default: "
                               "eqnz_usercred.secret"), dest="secret")
