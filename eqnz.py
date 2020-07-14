@@ -113,7 +113,7 @@ def main():
     else:
         mastodon = None
 
-    eqs = latestQuakes(args.mmi)
+    eqs = latestQuakes(-1)
 
     if len(eqs) == 0:
         raise ValueError("Failed to get first batch of earthquakes")
@@ -122,13 +122,14 @@ def main():
 
     if args.debug:
         for eq in eqs:
-            printEQ(eqs[eq], eq, None, args, mastodon)
+            if eqs[eq]["mmi"] >= args.mmi:
+                printEQ(eqs[eq], eq, None, args, mastodon)
 
     while True:
         if args.debug:
             print("Looping...")
         time.sleep(args.wait)
-        neweq = latestQuakes(args.mmi)
+        neweq = latestQuakes(-1)
         for qid in neweq:
             if neweq[qid]["quality"] == "deleted":
                 continue
@@ -144,7 +145,7 @@ def main():
                     neweq[qid]["threadid"] = printEQ(neweq[qid], qid, tid,
                                                      args, mastodon)
                     eqs[qid] = neweq[qid]
-            else:
+            elif neweq[qid]["mmi"] >= args.mmi:
                 # New entry
                 neweq[qid]["threadid"] = printEQ(neweq[qid], qid, None, args,
                                                  mastodon)
