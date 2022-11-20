@@ -97,7 +97,7 @@ def updateVolc(volfeat, oldval, args, mastodon):
     print(sval)
     if not args.debug:
         try:
-            masto.status_post(sval)
+            mastodon.status_post(sval)
         except Exception as e:
             print(e, file=stderr)
 
@@ -128,7 +128,7 @@ def main():
         print(sumstring)
         if not args.debug:
             try:
-                masto.status_post(sumstring)
+                mastodon.status_post(sumstring)
             except Exception as e:
                 print(e, file=stderr)
     else:
