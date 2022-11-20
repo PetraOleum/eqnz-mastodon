@@ -3,6 +3,28 @@ import json
 from sys import stderr
 import argparse
 from mastodon import Mastodon
+import datetime as dt
+import pytz
+
+hashtagList = {
+    "taupo":"Taupō",
+    "tongariro":"Tongariro",
+    "aucklandvolcanicfield":"AucklandVolcano",
+    "kermadecislands":"Kermadecs",
+    "mayorisland":"TūhuaMayorIsland",
+    "ngauruhoe":"Ngāuruhoe",
+    "northland":"NorthlandVolcano",
+    "okataina":"Okataina",
+    "rotorua":"Rotorua",
+    "taranakiegmont":"MtTaranaki",
+    "whiteisland":"Whakaari",
+    "ruapehu":"Ruapehu"
+}
+
+nameSubs = {
+    "whiteisland":"Whakaari/White Island",
+    "taupo":"Taupō"
+}
 
 def parseArgs():
     parser = argparse.ArgumentParser(description=("EQNZ mastodon bot: volcano "
@@ -17,6 +39,10 @@ def parseArgs():
                               "eqnz_usercred.secret"), dest="secret")
     parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                         help="do not post to mastodon, do print initial")
+    parser.add_argument("-u", "--unchanged", dest="unchanged", action="store_true",
+                        help="post or print all even if unchanged")
+    parser.add_argument("--summary", dest="summary", action="store_true",
+                        help="post or print a summary, rather than changes")
     return parser.parse_args()
 
 
@@ -38,24 +64,41 @@ def saveVolcData(dat, fn):
         file.write(dat)
 
 
+def VolcSummary(volcdata, minlevel = 0):
+    summlist = ["{}: {} ({}) #{}".format(
+        nameSubs[vol["properties"]["volcanoID"]] if
+        vol["properties"]["volcanoID"] in nameSubs else vol["properties"]["volcanoTitle"],
+                               vol["properties"]["level"],
+                               vol["properties"]["activity"].replace(".", ""),
+                               hashtagList[vol["properties"]["volcanoID"]]
+                                         if vol["properties"]["volcanoID"] in
+                                         hashtagList else
+                                         vol["properties"]["volcanoTitle"].replace(" ", ""))
+                for vol in volcdata if vol["properties"]["level"] >= minlevel]
+    curTime = dt.datetime.now(tz=pytz.timezone("Pacific/Auckland")).strftime("%H:%M %A %B %-d %Y")
+    if len(summlist) == 0:
+        return "All volcanos at alert level 0 at " + curTime + " #VolcanoNZ"
+    else:
+        return "Volcano status at " + curTime + " from https://www.geonet.org.nz/volcano: #VolcanoNZ\n" + "\n".join(summlist)
+
+
 def updateVolc(volfeat, oldval, args, mastodon):
     newval = volfeat["properties"]["level"]
     chword = "downgraded" if oldval >= newval else "upgraded"
     volid = volfeat["properties"]["volcanoID"]
-    volc = ("Whakaari/White Island" if volid == "whiteisland"
-            else volfeat["properties"]["volcanoTitle"])
+    volc = nameSubs[volid] if volid in nameSubs else volfeat["properties"]["volcanoTitle"]
+    hashtag = hashtagList[volid] if volid in hashtagList else volc.replace(" ", "")
     altext = volfeat["properties"]["activity"]
-    sval = ("Volcanic alert level of #{} {} from {} to {}. "
+    sval = ("Volcanic alert level of {} {} from {} to {}. "
             "{}\nhttps://www.geonet.org.nz/volcano/{} "
-            "#VolcanoNZ").format(volc, chword, oldval,
-                                 newval, altext, volid)
+            "#{} #VolcanoNZ").format(volc, chword, oldval,
+                                 newval, altext, volid, hashtag)
     print(sval)
     if not args.debug:
         try:
             masto.status_post(sval)
         except Exception as e:
             print(e, file=stderr)
-
 
 
 def main():
@@ -67,10 +110,12 @@ def main():
     nd = getNewVolcData()
     ndj = json.loads(nd)
     if args.debug:
-        for vol in ndj["features"]:
-            print("{}: {} ({})".format(vol["properties"]["volcanoTitle"],
-                                       vol["properties"]["level"],
-                                       vol["properties"]["activity"]))
+        print(VolcSummary(ndj["features"], 0))
+        print()
+        #for vol in ndj["features"]:
+        #    print("{}: {} ({})".format(vol["properties"]["volcanoTitle"],
+        #                               vol["properties"]["level"],
+        #                               vol["properties"]["activity"]))
     try:
         od = loadOldVolcData(args.jfile)
         odj = json.loads(od)
@@ -80,18 +125,28 @@ def main():
         print("Replacing with new download and quitting.")
         saveVolcData(nd, args.jfile)
         quit()
-    for vi in range(0, len(odj["features"])):
-        try:
-            odv = odj["features"][vi]
-            ndv = ndj["features"][vi]
-            if (odv["properties"]["volcanoID"] ==
-                    ndv["properties"]["volcanoID"] and
-                    int(odv["properties"]["level"]) !=
-                    int(ndv["properties"]["level"])):
-                updateVolc(ndv, odv["properties"]["level"])
-        except Exception as e:
-            print(e, file=stderr)
-    saveVolcData(nd, args.jfile)
+    if args.summary:
+        sumstring = VolcSummary(ndj["features"], 1)
+        print("Summary string:")
+        print(sumstring)
+        if not args.debug:
+            try:
+                masto.status_post(sumstring)
+            except Exception as e:
+                print(e, file=stderr)
+    else:
+        for vi in range(0, len(odj["features"])):
+            try:
+                odv = odj["features"][vi]
+                ndv = ndj["features"][vi]
+                if ((odv["properties"]["volcanoID"] ==
+                        ndv["properties"]["volcanoID"] and
+                        int(odv["properties"]["level"]) !=
+                        int(ndv["properties"]["level"])) or args.unchanged):
+                    updateVolc(ndv, odv["properties"]["level"], args, mastodon)
+            except Exception as e:
+                print(e, file=stderr)
+        saveVolcData(nd, args.jfile)
 
 
 if __name__ == "__main__":
