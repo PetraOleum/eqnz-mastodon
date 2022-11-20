@@ -23,6 +23,7 @@ hashtagList = {
 
 nameSubs = {
     "whiteisland":"Whakaari/White Island",
+    "mayorisland":"Tūhua/Mayor Island",
     "taupo":"Taupō"
 }
 
@@ -112,10 +113,6 @@ def main():
     if args.debug:
         print(VolcSummary(ndj["features"], 0))
         print()
-        #for vol in ndj["features"]:
-        #    print("{}: {} ({})".format(vol["properties"]["volcanoTitle"],
-        #                               vol["properties"]["level"],
-        #                               vol["properties"]["activity"]))
     try:
         od = loadOldVolcData(args.jfile)
         odj = json.loads(od)
