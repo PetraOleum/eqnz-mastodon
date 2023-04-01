@@ -50,7 +50,8 @@ def latestQuakes(mmi):
                             headers={"Accept":
                                      "application/vnd.geo+json;version=2",
                                      "User-Agent": "Mastodon eqnz bot"},
-                            params={"MMI": mmi})
+                            params={"MMI": mmi},
+                            timeout=10)
 
         eqjs = resp.json()["features"]
         eqs = {}

@@ -51,7 +51,8 @@ def getNewVolcData():
     return requests.get("https://api.geonet.org.nz/volcano/val",
                         headers={"Accept":
                                  "application/vnd.geo+json;version=2",
-                                 "User-Agent": "Mastodon eqnz bot"}
+                                 "User-Agent": "Mastodon eqnz bot"},
+                        timeout=10
                         ).text
 
 
