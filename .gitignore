@@ -1,3 +1,5 @@
 *.secret
 *.json
 .python-version
+
+venv/
