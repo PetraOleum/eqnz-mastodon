@@ -5,6 +5,7 @@ import argparse
 from sys import stderr
 from pytz import timezone
 from mastodon import Mastodon
+from math import floor
 
 roman = {1: "I (Unnoticeable)",
          2: "II (Unnoticeable)",
@@ -91,7 +92,11 @@ def printEQ(eq, eqid, threadid, args, masto):
     else:
         ps4 = ""
     if threadid is None:
-        ps5 = "\nhttps://www.geonet.org.nz/earthquake/{} #eqnz".format(eqid)
+        mmifloor = floor(eq["mmi"])
+        ps5 = (
+            "\nhttps://www.geonet.org.nz/earthquake/{} #mmi{} #mag{} #eqnz"
+          ).format(eqid, mmifloor if mmifloor >=0 else "Negligable",
+                   floor(eq["magnitude"]))
     else:
         ps5 = ""
     post = "{}{}{}{}{}".format(ps1, ps2, ps3, ps4, ps5)
@@ -103,8 +108,9 @@ def printEQ(eq, eqid, threadid, args, masto):
             print(e, file=stderr)
             return None
     else:
+        print("len: {} chars".format(len(post)))
         # Placeholder id
-        return "123456789"
+        return None
 
 
 def main():
